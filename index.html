@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedCare Sync – Prototype</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#14213d;--mut:#5b6678;--line:#e2e7ee;--brand:#0f6fde;--brand2:#e8f1fd;--ok:#12805c;--okbg:#e5f6ef;--warn:#b26a00;--warnbg:#fff3dd;--bad:#c0392b;--badbg:#fdecea;--new:#5b3fd1;--newbg:#efeafd}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:18px}.logo span{color:var(--brand)}
+.tag{font-size:12px;background:#fff3dd;color:var(--warn);padding:2px 8px;border-radius:99px}
+.switch{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.switch button{border:0;background:#fff;padding:7px 14px;cursor:pointer;font:inherit;color:var(--mut)}.switch button.on{background:var(--brand);color:#fff}
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+.steps{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.step{flex:1;min-width:120px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:13px;color:var(--mut)}
+.step b{display:block;color:var(--ink)}.step.on{border-color:var(--brand);background:var(--brand2)}.step.done{border-color:var(--ok)}.step.done b::after{content:" ✓";color:var(--ok)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:16px}
+h2{margin:0 0 4px;font-size:20px}p.sub{margin:0 0 16px;color:var(--mut)}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+.btn:disabled{background:#b8c4d6;cursor:not-allowed}.btn.sec{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+.drop{border:2px dashed #9db6d8;border-radius:12px;padding:40px 20px;text-align:center;background:#fafcff}
+.drop.over{background:var(--brand2)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-bad{background:var(--badbg);color:var(--bad)}.p-new{background:var(--newbg);color:var(--new)}.p-mut{background:#eef1f5;color:var(--mut)}
+.sum{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}.sum div{flex:1;min-width:100px;border-radius:10px;padding:10px 12px;text-align:center}.sum b{font-size:24px;display:block}
+.row-new td:first-child{border-left:4px solid var(--new)}.row-mod td:first-child{border-left:4px solid var(--warn)}.row-om td:first-child{border-left:4px solid var(--bad)}
+.old{text-decoration:line-through;color:var(--mut)}.arrow{color:var(--mut);margin:0 4px}
+.note{background:var(--brand2);border-radius:8px;padding:10px 14px;font-size:13.5px;margin:12px 0}
+.opt label{margin-right:14px;cursor:pointer;white-space:nowrap}
+select,input[type=text]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px}
+.actions{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px;flex-wrap:wrap}
+.hint{font-size:12.5px;color:var(--mut)}
+.receipt{font-family:ui-monospace,Consolas,monospace;font-size:13px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:14px;white-space:pre-wrap}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.kpis div{flex:1;min-width:140px;background:var(--okbg);border-radius:10px;padding:10px;text-align:center}.kpis b{font-size:20px;display:block;color:var(--ok)}
+footer{max-width:980px;margin:0 auto;padding:0 16px 30px;color:var(--mut);font-size:12.5px}
+@media(max-width:640px){th:nth-child(n+4),td:nth-child(n+4){}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">MedCare <span>Sync</span></div>
+  <span class="tag">Prototype · synthetic data only</span>
+  <div class="switch" role="tablist">
+    <button id="vProv" class="on" onclick="setView('prov')">Provider view</button>
+    <button id="vPlan" onclick="setView('plan')">Health plan view</button>
+  </div>
+</header>
+<main id="app"></main>
+<footer>All names, NPIs and organisations are fictional. AI confidence scores and plan rules are simulated for demonstration. No real provider or patient data is used.</footer>
+
+<script>
+// ---------- synthetic data ----------
+const existing=[ // what "Northwind Health Plan" (fictional) has on file
+ ["Dr. Sarah Chen","1003000126","Internal Medicine","North Clinic, 120 Elm St"],
+ ["Dr. Ravi Menon","1003000134","Cardiology","Central Clinic, 45 Oak Ave"],
+ ["Dr. Elena Rossi","1003000142","Pediatrics","Central Clinic, 45 Oak Ave"],
+ ["Dr. James Okafor","1003000159","Family Medicine","North Clinic, 120 Elm St"],
+ ["Dr. Priya Nair","1003000167","Dermatology","Central Clinic, 45 Oak Ave"],
+ ["Dr. Tom Becker","1003000175","Orthopedics","Central Clinic, 45 Oak Ave"],
+ ["Dr. Aisha Khan","1003000183","Neurology","North Clinic, 120 Elm St"],
+ ["Dr. Luis Herrera","1003000191","Family Medicine","North Clinic, 120 Elm St"],
+ ["Dr. Mei Lin","1003000209","Endocrinology","Central Clinic, 45 Oak Ave"],
+ ["Dr. Noah Fischer","1003000217","Psychiatry","Central Clinic, 45 Oak Ave"],
+ ["Dr. Grace Adeyemi","1003000225","OB/GYN","North Clinic, 120 Elm St"],
+ ["Dr. Omar Haddad","1003000233","Gastroenterology","Central Clinic, 45 Oak Ave"],
+ ["Dr. Hannah Weiss","1003000241","Pulmonology","North Clinic, 120 Elm St"],
+ ["Dr. Kenji Mori","1003000258","Radiology","Central Clinic, 45 Oak Ave"],
+ ["Dr. Marcus Vance","1003000266","General Surgery","North Clinic, 120 Elm St"]];
+// uploaded: first 14 same NPIs, Chen moved, Okafor specialty changed, Patel new, Vance missing
+const upload=existing.slice(0,14).map(r=>r.slice());
+upload[0][3]="Central Clinic, 45 Oak Ave";           // Chen moved
+upload[3][2]="Sports Medicine";                      // Okafor specialty
+upload.push(["Dr. Alex Patel","1003000274","Pediatrics","Central Clinic, 45 Oak Ave"]);
+const cols=[ // [file header, maps to, confidence, example]
+ ["Clinician","Provider name",99,"Dr. Sarah Chen"],
+ ["National Provider Number","NPI",97,"1003000126"],
+ ["Practice Address","Practice location",96,"Central Clinic, 45 Oak Ave"],
+ ["Specialty / Dept","Specialty",82,"Internal Medicine"],
+ ["Start Dt","Effective date",78,"01/06/2026"],
+ ["Emp Stat","Status",64,"Active"],
+ ["Notes","(ignore)",90,"-"]];
+const fields=["Provider name","NPI","Practice location","Specialty","Effective date","Status","(ignore)"];
+
+// ---------- state ----------
+let view="prov",step=0,mapOK={},decision=null,syndicate=true,attested=false,planApproved={},published=false,txn="";
+const $=s=>document.querySelector(s);
+const tier=c=>c>95?["Auto-mapped","p-ok"]:c>=70?["Please confirm","p-warn"]:["Needs your input","p-bad"];
+cols.forEach((c,i)=>mapOK[i]=c[2]>95);
+
+function diff(){
+ const ex=Object.fromEntries(existing.map(r=>[r[1],r])),up=Object.fromEntries(upload.map(r=>[r[1],r]));
+ const mod=[],nw=[],om=[],same=[];
+ upload.forEach(r=>{const e=ex[r[1]];if(!e)nw.push(r);else if(e[2]!==r[2]||e[3]!==r[3])mod.push([e,r]);else same.push(r)});
+ existing.forEach(e=>{if(!up[e[1]])om.push(e)});
+ return{mod,nw,om,same};
+}
+function setView(v){view=v;$("#vProv").classList.toggle("on",v==="prov");$("#vPlan").classList.toggle("on",v==="plan");render()}
+function steps(){
+ const s=["Upload roster","Check column mapping","Review changes","Attest & submit"];
+ return `<div class="steps">${s.map((t,i)=>`<div class="step ${i===step?"on":""} ${i<step?"done":""}"><small>Step ${i+1}</small><b>${t}</b></div>`).join("")}</div>`;
+}
+function render(){ $("#app").innerHTML = view==="prov"?provView():planView(); wire(); }
+
+// ---------- provider view ----------
+function provView(){
+ if(step===0) return steps()+`<div class="card"><h2>Summit Medical Group · Roster update</h2>
+ <p class="sub">Upload the roster file you already keep – any format. No template, no re-typing.</p>
+ <div class="drop" id="drop"><p style="font-size:16px;margin:0 0 6px"><b>Drag & drop your roster here</b></p>
+ <p class="hint" style="margin:0 0 16px">.xlsx or .csv · or try the sample below</p>
+ <button class="btn" onclick="go(1)">Use sample: Summit_Staff_Q4.xlsx</button></div>
+ <div class="note">💡 Instead of email, you get instant feedback, status tracking and no follow-up calls. Plan on file: <b>Northwind Health Plan</b> (fictional).</div></div>`;
+ if(step===1){ const ok=Object.values(mapOK).every(Boolean);
+ return steps()+`<div class="card"><h2>We read 7 columns from Summit_Staff_Q4.xlsx</h2>
+ <p class="sub">Parsed 15 clinician rows. Confirm the few columns we're unsure about – takes ~10 seconds.</p>
+ <table><tr><th>Your column</th><th>Example</th><th>We think it is</th><th>Confidence</th><th></th></tr>
+ ${cols.map((c,i)=>{const[t,k]=tier(c[2]);return `<tr><td><b>${c[0]}</b></td><td class="hint">${c[3]}</td>
+ <td>${c[2]<70?`<select onchange="pick(${i},this.value)"><option value="">Choose field…</option>${fields.map(f=>`<option>${f}</option>`).join("")}</select>`:c[1]}</td>
+ <td><span class="pill ${k}">${c[2]}% · ${t}</span></td>
+ <td>${c[2]>=70&&c[2]<=95?(mapOK[i]?"✓ Confirmed":`<button class="btn sec" style="padding:4px 10px" onclick="conf(${i})">Confirm</button>`):mapOK[i]?"✓":""}</td></tr>`}).join("")}</table>
+ <div class="note">🔒 AI suggests the mapping; fixed rules then check every row (NPI format, required fields, duplicates). Nothing is published without your attestation and the plan's approval.</div>
+ <div class="actions"><button class="btn sec" onclick="go(0)">Back</button><button class="btn" ${ok?"":"disabled"} onclick="go(2)">Continue to review</button></div></div>`}
+ if(step===2){const d=diff(),ready=decision!==null;
+ return steps()+`<div class="card"><h2>Smart Diff · only what changed</h2>
+ <p class="sub">Compared with what Northwind Health Plan has on file. 12 unchanged records are hidden.</p>
+ <div class="sum"><div style="background:#eef1f5"><b>${d.same.length}</b>Unchanged</div><div style="background:var(--warnbg)"><b>${d.mod.length}</b>Modified</div><div style="background:var(--newbg)"><b>${d.nw.length}</b>New</div><div style="background:var(--badbg)"><b>${d.om.length}</b>Omitted</div></div>
+ <table><tr><th>Clinician</th><th>Change</th><th>Checks</th></tr>
+ ${d.mod.map(([e,r])=>`<tr class="row-mod"><td><b>${r[0]}</b><br><span class="hint">NPI ${r[1]}</span></td><td><span class="pill p-warn">Modified</span><br>${e[3]!==r[3]?`<span class="old">${e[3]}</span><span class="arrow">→</span><b>${r[3]}</b>`:`<span class="old">${e[2]}</span><span class="arrow">→</span><b>${r[2]}</b>`}</td><td><span class="pill p-ok">NPI format ✓</span> <span class="pill p-ok">Match 99%</span></td></tr>`).join("")}
+ ${d.nw.map(r=>`<tr class="row-new"><td><b>${r[0]}</b><br><span class="hint">NPI ${r[1]}</span></td><td><span class="pill p-new">New</span><br>${r[2]} · ${r[3]}</td><td><span class="pill p-ok">NPI format ✓</span> <span class="pill p-ok">No duplicate</span> <span class="pill p-warn">Taxonomy to verify</span></td></tr>`).join("")}
+ ${d.om.map(r=>`<tr class="row-om"><td><b>${r[0]}</b><br><span class="hint">NPI ${r[1]}</span></td><td><span class="pill p-bad">Missing from your file</span><br>We will <b>not</b> remove them automatically.</td>
+ <td class="opt"><label><input type="radio" name="om" value="keep" ${decision==="keep"?"checked":""}> Keep active – file was incomplete</label><br><label><input type="radio" name="om" value="term" ${decision==="term"?"checked":""}> Confirm inactive (needs effective date)</label></td></tr>`).join("")}
+ </table>
+ <div class="note"><label><input type="checkbox" id="syn" ${syndicate?"checked":""}> <b>Also offer these address / specialty updates to my other contracted plans</b> (UnitedPlan, Humana-like Plan B – fictional). Each plan still reviews and approves its own copy.</label><br><span class="hint">Preview of the later "update once" feature; off by default in the pilot.</span></div>
+ <div class="actions"><button class="btn sec" onclick="go(1)">Back</button><span class="hint">${ready?"":"Choose an option for the omitted clinician to continue"}</span><button class="btn" ${ready?"":"disabled"} onclick="go(3)">Continue</button></div></div>`}
+ if(step===3){ return steps()+`<div class="card"><h2>Attest & submit to Northwind Health Plan</h2>
+ <p class="sub">You are confirming facts about your own staff. The plan separately decides network eligibility.</p>
+ <table><tr><th>Summary</th><th></th></tr><tr><td>Modified records</td><td>2</td></tr><tr><td>New clinician</td><td>1 (Dr. Alex Patel)</td></tr><tr><td>Dr. Marcus Vance</td><td>${decision==="keep"?"Kept active (no change)":"Marked inactive – pending plan verification"}</td></tr><tr><td>Also offered to other plans</td><td>${syndicate?"Yes (each plan approves separately)":"No"}</td></tr></table>
+ <div class="note"><label><input type="checkbox" id="att"> I attest that the changes above accurately reflect Summit Medical Group staffing as of today.</label></div>
+ <div class="actions"><button class="btn sec" onclick="go(2)">Back</button><button class="btn" id="sub" disabled onclick="submit()">Attest & submit</button></div></div>`}
+ if(step===4){ return `<div class="card"><h2>✅ Submitted – awaiting plan approval</h2>
+ <p class="sub">You'll be notified when Northwind reviews it. No emails or phone calls needed.</p>
+ <table><tr><th>Item</th><th>Status</th></tr>
+ <tr><td>Submission & validation</td><td><span class="pill p-ok">Done</span></td></tr>
+ <tr><td>Provider attestation</td><td><span class="pill p-ok">Done · ${new Date().toLocaleString()}</span></td></tr>
+ <tr><td>Health plan approval</td><td>${published?'<span class="pill p-ok">Approved</span>':'<span class="pill p-warn">Pending</span>'}</td></tr>
+ <tr><td>Published to plan records</td><td>${published?'<span class="pill p-ok">Published</span>':'<span class="pill p-mut">Not yet</span>'}</td></tr></table>
+ ${published?receipt():`<div class="note">Switch to <b>Health plan view</b> (top right) to see the reviewer side and approve this submission.</div>`}
+ <div class="actions"><button class="btn sec" onclick="reset()">Restart demo</button>${published?'<button class="btn" onclick="dl()">Download audit receipt</button>':''}</div></div>`}
+}
+function receipt(){return `<div class="kpis"><div><b>~3 min</b>provider effort (vs ~45 min re-keying)*</div><div><b>1</b>item needed plan review</div><div><b>0</b>silent terminations</div></div><p class="hint">*Illustrative, not measured – a pilot hypothesis.</p><div class="receipt">${receiptText()}</div>`}
+function receiptText(){const d=diff();return `AUDIT RECEIPT (synthetic)
+Transaction: ${txn}
+Source file: Summit_Staff_Q4.xlsx (15 rows)
+Submitted by: Practice admin, Summit Medical Group
+Attested: yes · ${new Date().toISOString()}
+Plan decision: approved by Northwind reviewer
+Changes: ${d.mod.length} modified · ${d.nw.length} new · omitted record ${decision==="keep"?"kept active":"set inactive"}
+Version: roster v${12} → v${13} (previous values retained)`}
+
+// ---------- plan view ----------
+function planView(){
+ if(step<4) return `<div class="card"><h2>Northwind Health Plan · Review queue</h2><p class="sub">No submissions waiting. Go to the Provider view and submit the Summit roster first.</p></div>`;
+ const items=[["Dr. Sarah Chen – practice location change","Low–medium","Auto-checks passed","medium"],["Dr. James Okafor – specialty change","Medium","Review specialty vs. credentialing file","medium"],["Dr. Alex Patel – new clinician","High","Identity & taxonomy verification","high"]];
+ if(decision==="term")items.push(["Dr. Marcus Vance – termination","High","Evidence & effective date required","high"]);
+ const allDone=items.every((_,i)=>planApproved[i]);
+ return `<div class="card"><h2>Northwind Health Plan · Review queue</h2>
+ <p class="sub">Submission from Summit Medical Group · attested by provider · risk-sorted. Only exceptions need a human; low-risk formatting fixes were auto-processed.</p>
+ <table><tr><th>Change</th><th>Risk</th><th>Why flagged</th><th></th></tr>
+ ${items.map((it,i)=>`<tr><td><b>${it[0]}</b></td><td><span class="pill ${it[3]==="high"?"p-bad":"p-warn"}">${it[1]}</span></td><td class="hint">${it[2]}</td><td>${planApproved[i]?'<span class="pill p-ok">Approved</span>':`<button class="btn sec" style="padding:4px 10px" onclick="appr(${i})">Approve</button>`}</td></tr>`).join("")}</table>
+ <div class="note">Plans keep control: network participation and contract status are never changed by a provider submission.</div>
+ <div class="actions"><span class="hint">${published?"Published to plan records.":""}</span><button class="btn" ${allDone&&!published?"":"disabled"} onclick="publish()">Approve all & publish</button></div></div>`;
+}
+
+// ---------- actions ----------
+function go(n){step=n;render();window.scrollTo(0,0)}
+function pick(i,v){mapOK[i]=!!v;render()}
+function conf(i){mapOK[i]=true;render()}
+function submit(){txn="MS-"+Math.random().toString(36).slice(2,8).toUpperCase();step=4;render()}
+function appr(i){planApproved[i]=true;render()}
+function publish(){published=true;render()}
+function reset(){step=0;mapOK={};cols.forEach((c,i)=>mapOK[i]=c[2]>95);decision=null;syndicate=true;planApproved={};published=false;view="prov";setView("prov")}
+function dl(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([receiptText()],{type:"text/plain"}));a.download="audit-receipt-"+txn+".txt";a.click()}
+function wire(){
+ document.querySelectorAll('input[name=om]').forEach(r=>r.onchange=e=>{decision=e.target.value;render()});
+ const s=$("#syn");if(s)s.onchange=e=>syndicate=e.target.checked;
+ const a=$("#att");if(a)a.onchange=e=>{$("#sub").disabled=!e.target.checked};
+ const d=$("#drop");if(d){["dragover","dragenter"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add("over")}));d.addEventListener("drop",e=>{e.preventDefault();go(1)})}
+}
+render();
+</script>
+</body>
+</html>
